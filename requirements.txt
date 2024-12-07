@@ -5,8 +5,6 @@ streamlit-chat
 langchain
 langchain-community
 langchain-google-genai
-qdrant_client
-langchain-qdrant
 langchain_huggingface
 tiktoken
 huggingface_hub
@@ -15,5 +13,4 @@ pypdf
 sentence-transformers
 ctransformers
 PyPDF2
-chromadb
 faiss-cpu
