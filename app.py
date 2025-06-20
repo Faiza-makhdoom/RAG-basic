@@ -104,6 +104,30 @@ def submit():
     st.session_state.prompt_input = ""
 
 # Main app function
+
+import streamlit as st
+
+# 🔐 Password gate function
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == "your_secret_password":  # 🔑 Set your password here
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Optional: Remove password after check
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("Enter password:", type="password", on_change=password_entered, key="password")
+        st.stop()
+    elif not st.session_state["password_correct"]:
+        st.text_input("Enter password:", type="password", on_change=password_entered, key="password")
+        st.error("Password incorrect")
+        st.stop()
+
+# 🛡️ Call this at the very top of your app
+check_password()
+
+
 def main():
     st.set_page_config("DocumentGPT")
     st.header("Chat with your PDFs")
