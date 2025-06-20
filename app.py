@@ -15,13 +15,14 @@ from streamlit_chat import message
 from dotenv import load_dotenv
 
 load_dotenv()
+PASSWORD = os.getenv("APP_PASSWORD")
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# 🔐 Password protection
+# Password protection
 def check_password():
     def password_entered():
-        if st.session_state["password"] == st.secrets["general"]["password"]:
+        if st.session_state["password"] == PASSWORD:
             st.session_state["password_correct"] = True
             del st.session_state["password"]
         else:
@@ -72,7 +73,7 @@ def get_conversational_chain():
     """
     
     LLM = ChatGoogleGenerativeAI(
-        model="gemini-1.5-pro",
+        model="gemini-2.0-flash",
         temperature=0,
         max_tokens=None,
         timeout=None,
@@ -114,7 +115,7 @@ def submit():
 
 # Main app function
 def main():
-    check_password()  # 🔐 Ask for password first
+    check_password()  #Ask for password first
     st.set_page_config("DocumentGPT")
     st.header("Chat with your PDFs")
 
