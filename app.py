@@ -1,4 +1,4 @@
-#LLM problem resolution ---> pip install -qU langchain-google-genai
+# LLM problem resolution ---> pip install -qU langchain-google-genai
 
 import streamlit as st
 from PyPDF2 import PdfReader
@@ -18,13 +18,30 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
+# 🔐 Password protection
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == st.secrets["general"]["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("Enter password:", type="password", on_change=password_entered, key="password")
+        st.stop()
+    elif not st.session_state["password_correct"]:
+        st.text_input("Enter password:", type="password", on_change=password_entered, key="password")
+        st.error("Password incorrect")
+        st.stop()
+
 # Extract text from uploaded PDF files
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text += page.extract_text()  # Accumulate text from each page
+            text += page.extract_text()
     return text
 
 # Split extracted text into chunks
@@ -37,17 +54,17 @@ def get_chunks(text):
 def get_vector_store(text_chunks):
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
-    return vector_store  # Return in-memory vector store
+    return vector_store
 
 # Configure conversational chain for question-answering
 def get_conversational_chain():
     prompt_template = """
     Answer the question precisely from the provided context, also make sure to provide all the details. 
     If the answer is not in the provided context, just say, "I am sorry, answer is not available in the context."
-    Do not provide a wrong answer.If user greets or say thanks to you, reply nicely and accordingly. In case the question is not relevent to the provided document, politely response 
-    that "The answer to your question is not available in the provided text. How can I help you further?". you are provided with 
+    Do not provide a wrong answer. If user greets or says thanks to you, reply nicely and accordingly. In case the question is not relevant to the provided document, politely respond 
+    that "The answer to your question is not available in the provided text. How can I help you further?". You are provided with 
     the chat history too so if the user asks any question indirectly it may be related to the previous questions, 
-    so before refusing, also go through the chat history too\n\n
+    so before refusing, also go through the chat history too.\n\n
     Context:\n {context}?\n
     Question: \n{question}\n
 
@@ -55,41 +72,35 @@ def get_conversational_chain():
     """
     
     LLM = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
-    temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
-    # other params...
-)
+        model="gemini-1.5-pro",
+        temperature=0,
+        max_tokens=None,
+        timeout=None,
+        max_retries=2,
+    )
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question", "chat_history"])
     chain = load_qa_chain(LLM, chain_type="stuff", prompt=prompt)
 
     return chain
-    
+
 # Handle user input to get response based on vector store
 def user_input(user_question):
     if "vector_store" not in st.session_state:
         st.write("Please process the PDF files first.")
         return
 
-    # Use in-memory vector store for similarity search
     docs = st.session_state.vector_store.similarity_search(user_question)
     chain = get_conversational_chain()
 
     response = chain(
         {"input_documents": docs, "question": user_question}, return_only_outputs=True
     )
-    #print(response)
-    #st.write("Reply: ", response["output_text"])
-
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     st.session_state.chat_history.append({"user": user_question, "ai": response["output_text"]})
 
-    # Display chat history
     response_container = st.container()
     with response_container:
         for i, entry in enumerate(st.session_state.chat_history):
@@ -98,37 +109,12 @@ def user_input(user_question):
 
 # Define function to submit user input
 def submit():
-    # Set entered_prompt to the current value of prompt_input
     st.session_state.entered_prompt = st.session_state.prompt_input
-    # Clear prompt_input
     st.session_state.prompt_input = ""
 
 # Main app function
-
-import streamlit as st
-
-# 🔐 Password gate function
-def check_password():
-    def password_entered():
-        if st.session_state["password"] == "your_secret_password":  # 🔑 Set your password here
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Optional: Remove password after check
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        st.text_input("Enter password:", type="password", on_change=password_entered, key="password")
-        st.stop()
-    elif not st.session_state["password_correct"]:
-        st.text_input("Enter password:", type="password", on_change=password_entered, key="password")
-        st.error("Password incorrect")
-        st.stop()
-
-# 🛡️ Call this at the very top of your app
-check_password()
-
-
 def main():
+    check_password()  # 🔐 Ask for password first
     st.set_page_config("DocumentGPT")
     st.header("Chat with your PDFs")
 
@@ -138,12 +124,8 @@ def main():
     if 'entered_prompt' not in st.session_state:
         st.session_state['entered_prompt'] = ""
 
-    #user_question = st.text_input("Ask Question about your files", key='prompt_input', on_change=submit)
-
-    # input box apears at bottom
     user_question = st.chat_input("Ask Question about your files")
     if st.session_state.entered_prompt != "":
-    # Get user query
         user_question = st.session_state.entered_prompt
     if user_question:
         user_input(user_question)
@@ -158,7 +140,7 @@ def main():
             with st.spinner("Processing..."):
                 raw_text = get_pdf_text(pdf_docs)
                 text_chunks = get_chunks(raw_text)
-                st.session_state.vector_store = get_vector_store(text_chunks)  # Store in session state
+                st.session_state.vector_store = get_vector_store(text_chunks)
                 st.success("Done")
 
 if __name__ == "__main__":
