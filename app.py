@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 #PASSWORD = os.getenv("APP_PASSWORD")
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+api_key = st.secrets["GOOGLE_API_KEY"]
 
 # Password protection
 def check_password():
