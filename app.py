@@ -14,15 +14,15 @@ from langchain.memory import ConversationBufferMemory
 from streamlit_chat import message
 from dotenv import load_dotenv
 
-load_dotenv()
-PASSWORD = os.getenv("APP_PASSWORD")
+#load_dotenv()
+#PASSWORD = os.getenv("APP_PASSWORD")
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # Password protection
 def check_password():
     def password_entered():
-        if st.session_state["password"] == PASSWORD:
+        if st.session_state["password"] == st.secrets["general"]["password"]:
             st.session_state["password_correct"] = True
             del st.session_state["password"]
         else:
